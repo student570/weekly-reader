@@ -1,0 +1,87 @@
+name: Poll Upstream SHA & Trigger Cloudflare Deploy Hook
+
+on:
+  schedule:
+    # Poll upstream commit SHA every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force trigger Cloudflare Deploy Hook even if SHA is unchanged'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  poll-and-trigger:
+    runs-on: ubuntu-latest
+    env:
+      UPSTREAM_REPO: ${{ vars.WEEKLY_UPSTREAM_REPO || 'student570/weekly' }}
+      UPSTREAM_BRANCH: ${{ vars.WEEKLY_UPSTREAM_BRANCH || 'master' }}
+    steps:
+      - name: Restore last seen upstream SHA
+        id: cache-sha
+        uses: actions/cache/restore@v4
+        with:
+          path: .weekly-sha-cache
+          key: weekly-sha-${{ env.UPSTREAM_REPO }}-${{ github.run_id }}
+          restore-keys: |
+            weekly-sha-${{ env.UPSTREAM_REPO }}-
+
+      - name: Query upstream HEAD Commit SHA
+        id: check-sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST_SHA=$(curl -fsSL \
+            -H "Accept: application/vnd.github.sha" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            "https://api.github.com/repos/${UPSTREAM_REPO}/commits/${UPSTREAM_BRANCH}")
+
+          if [ -z "$LATEST_SHA" ]; then
+            # Fallback to default branch if master doesn't exist
+            DEFAULT_BRANCH=$(curl -fsSL \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/repos/${UPSTREAM_REPO}" | jq -r '.default_branch')
+            LATEST_SHA=$(curl -fsSL \
+              -H "Accept: application/vnd.github.sha" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/repos/${UPSTREAM_REPO}/commits/${DEFAULT_BRANCH}")
+          fi
+
+          PREV_SHA=""
+          if [ -f .weekly-sha-cache/last_sha.txt ]; then
+            PREV_SHA=$(cat .weekly-sha-cache/last_sha.txt)
+          fi
+
+          echo "Previous SHA: ${PREV_SHA:-<none>}"
+          echo "Latest SHA:   ${LATEST_SHA}"
+          echo "latest_sha=${LATEST_SHA}" >> "$GITHUB_OUTPUT"
+
+          if [ "$LATEST_SHA" != "$PREV_SHA" ] || [ "${{ github.event.inputs.force_deploy }}" = "true" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger Cloudflare Pages Deploy Hook
+        if: steps.check-sha.outputs.changed == 'true'
+        env:
+          CF_DEPLOY_HOOK_URL: ${{ secrets.CF_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$CF_DEPLOY_HOOK_URL" ]; then
+            echo "::error::Missing secret CF_DEPLOY_HOOK_URL. Please add your Cloudflare Pages Deploy Hook URL in repository Secrets."
+            exit 1
+          fi
+          curl -fsSL -X POST "$CF_DEPLOY_HOOK_URL"
+          echo ""
+          echo "Triggered Cloudflare Pages rebuild for SHA ${{ steps.check-sha.outputs.latest_sha }}"
+          mkdir -p .weekly-sha-cache
+          echo "${{ steps.check-sha.outputs.latest_sha }}" > .weekly-sha-cache/last_sha.txt
+
+      - name: Save updated SHA to cache
+        if: steps.check-sha.outputs.changed == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .weekly-sha-cache
+          key: weekly-sha-${{ env.UPSTREAM_REPO }}-${{ github.run_id }}
