@@ -82,16 +82,22 @@ function classifyArticle(section, title, body) {
 
   // 1. Explicit section-level classification first
   if (section === '工具' || section === '软件' || title.includes('[本周软件]')) {
+    if (/(书籍|电子书|书单|入门教材|免费阅读|免费读|在线阅读)/i.test(text)) {
+      return '资源推荐';
+    }
     return '开源项目';
   }
 
+  if (section === '资源') {
+    return '资源推荐';
+  }
+
   if (
-    section === '资源' ||
-    section === '本周图片' ||
     section === '图片' ||
+    section === '本周图片' ||
     section === '图片和视频'
   ) {
-    return '资源推荐';
+    return '其他';
   }
 
   if (
@@ -324,8 +330,8 @@ function parseIssueFile(filePath, issueNumber, readmeMeta) {
       continue;
     }
 
-    // Check if section contains numbered items (1、 or 1.)
-    const hasNumberedItems = /^\d+[、\.]\s+/m.test(secBody);
+    // Check if section contains numbered items (1、 or 1. )
+    const hasNumberedItems = /^(?:\d+、|\d+\.\s+)/m.test(secBody);
 
     if (!hasNumberedItems) {
       // Single long-form article / essay section (e.g., ## 最分心的一年, ## 《GTA6》的写实主义)
@@ -353,17 +359,17 @@ function parseIssueFile(filePath, issueNumber, readmeMeta) {
       });
     } else {
       // Split numbered items
-      const itemChunks = secBody.split(/^(?=\d+[、\.]\s+)/m).filter((c) => c.trim());
+      const itemChunks = secBody.split(/^(?=(?:\d+、|\d+\.\s+))/m).filter((c) => c.trim());
       for (const chunk of itemChunks) {
         const chunkLines = chunk.trim().split(/\r?\n/);
         const firstLine = chunkLines[0];
-        if (!/^\d+[、\.]\s+/.test(firstLine)) {
+        if (!/^(?:\d+、|\d+\.\s+)/.test(firstLine)) {
           // Intro paragraph before item 1, skip if very short
           continue;
         }
         const { title, url } = cleanArticleTitle(firstLine);
         const bodyRest = chunkLines.slice(1).join('\n').trim();
-        const fullItemMd = `### ${title}\n\n${firstLine.replace(/^\d+[、\.]\s+/, '')}\n\n${bodyRest}`.trim();
+        const fullItemMd = `### ${title}\n\n${firstLine.replace(/^(?:\d+、|\d+\.\s+)/, '')}\n\n${bodyRest}`.trim();
         const plain = stripMarkdown(`${title} ${firstLine} ${bodyRest}`);
         const { externalLinks, githubRepos } = extractLinks(chunk);
 
