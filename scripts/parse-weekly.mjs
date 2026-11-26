@@ -80,22 +80,52 @@ function extractLinks(md) {
 function classifyArticle(section, title, body) {
   const text = `${section} ${title} ${body}`.toLowerCase();
 
-  // AI category
+  // 1. Explicit section-level classification first
+  if (section === '工具' || section === '软件' || title.includes('[本周软件]')) {
+    return '开源项目';
+  }
+
   if (
-    section.includes('AI') ||
-    /\b(ai|llm|gpt|claude|gemini|openai|anthropic|deepseek|agent|mcp|rag|diffusion|transformer|hugging\s*face|copilot|cursor|ollama|token|大模型|智能体|人工智能|机器学习|深度学习|提示词|多模态)\b/i.test(text)
+    section === '资源' ||
+    section === '本周图片' ||
+    section === '图片' ||
+    section === '图片和视频'
   ) {
+    return '资源推荐';
+  }
+
+  if (
+    section === '科技动态' ||
+    section === '资讯' ||
+    section === '新闻' ||
+    section === '一句话消息' ||
+    section === '新奇'
+  ) {
+    return '科技动态';
+  }
+
+  if (section === '教程' || section === '前端开发进阶手册') {
+    return '编程技术';
+  }
+
+  if (section.includes('AI')) {
     return 'AI';
   }
 
-  // 开源项目
+  // 2. Open-source project with GitHub repo (exclude books/tutorials)
   if (
-    section === '工具' ||
-    section === '软件' ||
-    (/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(body) &&
-      /(开源|工具|cli|命令行|插件|仪表板|客户端|服务端|替代品|框架|库|app|desktop|self-hosted)/i.test(text))
+    /github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(body) &&
+    /(开源|工具|cli|命令行|插件|仪表板|客户端|服务端|替代品|框架|库|app|desktop|self-hosted)/i.test(text) &&
+    !/(书籍|电子书|书单|免费读|在线阅读)/i.test(text)
   ) {
     return '开源项目';
+  }
+
+  // 3. AI category
+  if (
+    /\b(ai|llm|gpt|claude|gemini|openai|anthropic|deepseek|agent|mcp|rag|diffusion|transformer|hugging\s*face|copilot|cursor|ollama|token|大模型|智能体|人工智能|机器学习|深度学习|提示词|多模态)\b/i.test(text)
+  ) {
+    return 'AI';
   }
 
   // 编程技术
