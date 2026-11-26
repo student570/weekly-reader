@@ -50,7 +50,7 @@ import type {
   YearGroup,
 } from './types';
 
-const LAYOUT_STORAGE_KEY = 'weekly-reader-layout-v1';
+const LAYOUT_STORAGE_KEY = 'weekly-reader-layout-v2';
 
 const DEFAULT_LAYOUT: LayoutState = {
   leftWidth: 256,
@@ -58,7 +58,7 @@ const DEFAULT_LAYOUT: LayoutState = {
   leftCollapsed: false,
   middleCollapsed: false,
   focusMode: false,
-  theme: 'light',
+  theme: 'dark',
   fontSize: 'md',
   lineWidth: 'medium',
   tocVisible: true,
