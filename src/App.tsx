@@ -87,6 +87,7 @@ export function App() {
   const [loadingIssue, setLoadingIssue] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [activeIssueCategory, setActiveIssueCategory] = useState<Category | 'ALL'>('ALL');
 
   // Mobile single-pane state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -208,6 +209,7 @@ export function App() {
     async (issue: IssueMeta, targetArticleId?: string, showOverview = false) => {
       setMiddleViewMode('issue');
       setSelectedIssueNumber(issue.issueNumber);
+      setActiveIssueCategory('ALL');
       setLoadingIssue(true);
       setMobileDrawerOpen(false);
       if (showOverview) {
@@ -380,23 +382,47 @@ export function App() {
     });
   }, [selectedArticle]);
 
-  // Prev / Next article in current issue
+  // Prev / Next article scoped to active tag/category or search results
+  const activeNavList = useMemo(() => {
+    if (middleViewMode === 'search') {
+      return searchResults;
+    }
+    if (activeIssueCategory !== 'ALL') {
+      return issueArticles.filter(
+        (a) => getEffectiveCategory(a) === activeIssueCategory
+      );
+    }
+    return issueArticles;
+  }, [
+    middleViewMode,
+    searchResults,
+    activeIssueCategory,
+    issueArticles,
+    getEffectiveCategory,
+  ]);
+
+  const navContextLabel = useMemo(() => {
+    if (middleViewMode === 'search') return '搜索结果';
+    if (activeIssueCategory !== 'ALL') return activeIssueCategory;
+    return null;
+  }, [middleViewMode, activeIssueCategory]);
+
   const currentArticleIdx = useMemo(() => {
     if (!selectedArticle) return -1;
-    return issueArticles.findIndex((a) => a.id === selectedArticle.id);
-  }, [issueArticles, selectedArticle]);
+    return activeNavList.findIndex((a) => a.id === selectedArticle.id);
+  }, [activeNavList, selectedArticle]);
 
   const handlePrevArticle = useCallback(() => {
     if (currentArticleIdx > 0) {
-      handleSelectArticle(issueArticles[currentArticleIdx - 1]);
+      handleSelectArticle(activeNavList[currentArticleIdx - 1]);
     }
-  }, [currentArticleIdx, issueArticles, handleSelectArticle]);
+  }, [currentArticleIdx, activeNavList, handleSelectArticle]);
 
   const handleNextArticle = useCallback(() => {
-    if (currentArticleIdx >= 0 && currentArticleIdx < issueArticles.length - 1) {
-      handleSelectArticle(issueArticles[currentArticleIdx + 1]);
+    if (currentArticleIdx >= 0 && currentArticleIdx < activeNavList.length - 1) {
+      handleSelectArticle(activeNavList[currentArticleIdx + 1]);
     }
-  }, [currentArticleIdx, issueArticles, handleSelectArticle]);
+  }, [currentArticleIdx, activeNavList, handleSelectArticle]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -785,6 +811,8 @@ export function App() {
               searchLoading={searchLoading}
               yearGroups={indexData.yearGroups}
               allIssues={indexData.issues}
+              activeCategory={activeIssueCategory}
+              onChangeActiveCategory={setActiveIssueCategory}
               onSelectArticle={handleSelectArticle}
               onOpenOverview={() => {
                 setRightViewMode('overview');
@@ -879,8 +907,11 @@ export function App() {
             hasPrev={currentArticleIdx > 0}
             hasNext={
               currentArticleIdx >= 0 &&
-              currentArticleIdx < issueArticles.length - 1
+              currentArticleIdx < activeNavList.length - 1
             }
+            navContextLabel={navContextLabel}
+            navCurrentIndex={currentArticleIdx}
+            navTotalCount={activeNavList.length}
             onPrev={handlePrevArticle}
             onNext={handleNextArticle}
             onChangeCategory={handleChangeCategory}

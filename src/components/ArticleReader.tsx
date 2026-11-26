@@ -42,6 +42,9 @@ interface ArticleReaderProps {
   layout: LayoutState;
   hasPrev: boolean;
   hasNext: boolean;
+  navContextLabel?: string | null;
+  navCurrentIndex?: number;
+  navTotalCount?: number;
   onPrev: () => void;
   onNext: () => void;
   onChangeCategory: (category: Category) => void;
@@ -74,6 +77,9 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
   layout,
   hasPrev,
   hasNext,
+  navContextLabel,
+  navCurrentIndex,
+  navTotalCount,
   onPrev,
   onNext,
   onChangeCategory,
@@ -297,6 +303,35 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
         </div>
 
         <div className="reader-toolbar-actions">
+          {(hasPrev || hasNext) && (
+            <div className="toolbar-nav-group" title={navContextLabel ? `当前标签：${navContextLabel}` : '切换篇目'}>
+              <button
+                type="button"
+                className="toolbar-nav-btn"
+                disabled={!hasPrev}
+                onClick={onPrev}
+                title="上一篇 (K)"
+              >
+                <ChevronLeft size={15} />
+              </button>
+              {navTotalCount !== undefined && navTotalCount > 0 && navCurrentIndex !== undefined && navCurrentIndex >= 0 && (
+                <span className="toolbar-nav-pos">
+                  {navContextLabel ? `${navContextLabel} ` : ''}
+                  {navCurrentIndex + 1}/{navTotalCount}
+                </span>
+              )}
+              <button
+                type="button"
+                className="toolbar-nav-btn"
+                disabled={!hasNext}
+                onClick={onNext}
+                title="下一篇 (J)"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          )}
+
           {article.url && (
             <a
               href={article.url}
@@ -688,14 +723,24 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
                 onClick={onPrev}
               >
                 <ChevronLeft size={16} />
-                <span>上一篇 (K)</span>
+                <span>
+                  上一篇{navContextLabel ? ` · ${navContextLabel}` : ''} (K)
+                </span>
               </button>
+              {navTotalCount !== undefined && navTotalCount > 0 && navCurrentIndex !== undefined && navCurrentIndex >= 0 && (
+                <span className="footer-nav-counter">
+                  {navContextLabel ? `${navContextLabel} ` : ''}
+                  {navCurrentIndex + 1} / {navTotalCount}
+                </span>
+              )}
               <button
                 className="footer-nav-btn"
                 disabled={!hasNext}
                 onClick={onNext}
               >
-                <span>下一篇 (J)</span>
+                <span>
+                  下一篇{navContextLabel ? ` · ${navContextLabel}` : ''} (J)
+                </span>
                 <ChevronRight size={16} />
               </button>
             </footer>

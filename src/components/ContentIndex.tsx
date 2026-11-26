@@ -46,6 +46,8 @@ interface ContentIndexProps {
   searchLoading: boolean;
   yearGroups: YearGroup[];
   allIssues: IssueMeta[];
+  activeCategory: Category | 'ALL';
+  onChangeActiveCategory: (cat: Category | 'ALL') => void;
   // Actions
   onSelectArticle: (article: Article) => void;
   onOpenOverview: () => void;
@@ -72,12 +74,13 @@ export const ContentIndex: React.FC<ContentIndexProps> = ({
   searchLoading,
   yearGroups,
   allIssues,
+  activeCategory,
+  onChangeActiveCategory,
   onSelectArticle,
   onOpenOverview,
   onSelectIssueByNumber,
   onCollapse,
 }) => {
-  const [activeCategory, setActiveCategory] = useState<Category | 'ALL'>('ALL');
   const [bookmarkSort, setBookmarkSort] = useState<'newest' | 'oldest'>('newest');
   const [selectedTag, setSelectedTag] = useState<string>('ALL');
 
@@ -177,7 +180,7 @@ export const ContentIndex: React.FC<ContentIndexProps> = ({
           <div className="category-pills">
             <button
               className={`cat-pill ${activeCategory === 'ALL' ? 'active' : ''}`}
-              onClick={() => setActiveCategory('ALL')}
+              onClick={() => onChangeActiveCategory('ALL')}
             >
               全部 ({issueArticles.length})
             </button>
@@ -188,7 +191,7 @@ export const ContentIndex: React.FC<ContentIndexProps> = ({
                 <button
                   key={cat}
                   className={`cat-pill ${activeCategory === cat ? 'active' : ''}`}
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => onChangeActiveCategory(cat)}
                 >
                   {cat} ({cnt})
                 </button>
