@@ -37,12 +37,14 @@ export const IssueOverview: React.FC<IssueOverviewProps> = ({
   const bookmarkedCount = articles.filter((a) => bookmarksMap.has(a.id)).length;
 
   const categoryCounts: Record<Category, number> = {
+    卷首: 0,
     科技动态: 0,
-    开源项目: 0,
-    编程技术: 0,
     AI: 0,
-    产品设计: 0,
-    资源推荐: 0,
+    工具: 0,
+    资源: 0,
+    文章: 0,
+    图片: 0,
+    言论: 0,
     其他: 0,
   };
   for (const art of articles) {

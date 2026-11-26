@@ -20,12 +20,14 @@ const OUT_DIR = path.join(ROOT_DIR, 'public', 'data');
 const CHUNKS_DIR = path.join(OUT_DIR, 'chunks');
 
 const CATEGORIES = [
+  '卷首',
   '科技动态',
-  '开源项目',
-  '编程技术',
   'AI',
-  '产品设计',
-  '资源推荐',
+  '工具',
+  '资源',
+  '文章',
+  '图片',
+  '言论',
   '其他',
 ];
 
@@ -77,29 +79,13 @@ function extractLinks(md) {
   };
 }
 
-function classifyArticle(section, title, body) {
-  const text = `${section} ${title} ${body}`.toLowerCase();
-
-  // 1. Explicit section-level classification first
-  if (section === '工具' || section === '软件' || title.includes('[本周软件]')) {
-    if (/(书籍|电子书|书单|入门教材|免费阅读|免费读|在线阅读)/i.test(text)) {
-      return '资源推荐';
-    }
-    return '开源项目';
+function classifyArticle(section, title, _body, isLeadEssay = false) {
+  if (title.includes('[本周软件]') || section === '工具' || section === '软件') {
+    return '工具';
   }
-
   if (section === '资源') {
-    return '资源推荐';
+    return '资源';
   }
-
-  if (
-    section === '图片' ||
-    section === '本周图片' ||
-    section === '图片和视频'
-  ) {
-    return '其他';
-  }
-
   if (
     section === '科技动态' ||
     section === '资讯' ||
@@ -109,80 +95,31 @@ function classifyArticle(section, title, body) {
   ) {
     return '科技动态';
   }
-
-  if (section === '教程' || section === '前端开发进阶手册') {
-    return '编程技术';
-  }
-
-  if (section.includes('AI')) {
+  if (section === 'AI 相关' || section === 'AI') {
     return 'AI';
   }
-
-  // 2. Open-source project with GitHub repo (exclude books/tutorials)
   if (
-    /github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(body) &&
-    /(开源|工具|cli|命令行|插件|仪表板|客户端|服务端|替代品|框架|库|app|desktop|self-hosted)/i.test(text) &&
-    !/(书籍|电子书|书单|免费读|在线阅读)/i.test(text)
-  ) {
-    return '开源项目';
-  }
-
-  // 3. AI category
-  if (
-    /\b(ai|llm|gpt|claude|gemini|openai|anthropic|deepseek|agent|mcp|rag|diffusion|transformer|hugging\s*face|copilot|cursor|ollama|token|大模型|智能体|人工智能|机器学习|深度学习|提示词|多模态)\b/i.test(text)
-  ) {
-    return 'AI';
-  }
-
-  // 编程技术
-  if (
+    section === '文章' ||
+    section === '文摘' ||
     section === '教程' ||
-    section === '前端开发进阶手册' ||
-    /\b(javascript|typescript|python|rust|golang|java|c\+\+|css|html|react|vue|node\.js|sql|postgres|sqlite|redis|docker|kubernetes|linux|git|api|unicode|regex|wasm|webassembly|http|tcp|算法|架构|编程|代码|编译|数据库|后端|前端|测试|重构|性能优化)\b/i.test(text)
+    section === '前端开发进阶手册'
   ) {
-    return '编程技术';
+    return '文章';
   }
-
-  // 产品设计
+  if (section === '图片' || section === '本周图片' || section === '图片和视频') {
+    return '图片';
+  }
   if (
-    /(产品|设计|ui|ux|交互|创业|商业模式|独立开发|saas|增长|营销|盈利|定价|用户体验|界面设计|工作流)/i.test(text)
+    section === '言论' ||
+    section === '本周金句' ||
+    section === '言论与数字' ||
+    section === '言论和数字'
   ) {
-    return '产品设计';
+    return '言论';
   }
-
-  // 资源推荐
-  if (
-    section === '资源' ||
-    section === '本周图片' ||
-    section === '图片' ||
-    section === '图片和视频' ||
-    /(免费|网站|书籍|手册|指南|文档|电子书|课程|数据集|在线工具|导航|图库|字体|壁纸)/i.test(text)
-  ) {
-    return '资源推荐';
+  if (section === '卷首语' || section === '刊首语' || isLeadEssay) {
+    return '卷首';
   }
-
-  // 科技动态
-  if (
-    section === '科技动态' ||
-    section === '资讯' ||
-    section === '新闻' ||
-    section === '一句话消息' ||
-    section === '新奇' ||
-    /(芯片|算力|苹果|apple|谷歌|google|微软|microsoft|英伟达|nvidia|特斯拉|tesla|亚马逊|amazon|meta|太空|火箭|量子|半导体|机器人|自动驾驶|互联网|研究发现|科学家)/i.test(text)
-  ) {
-    return '科技动态';
-  }
-
-  // Fallback for Github repos
-  if (/github\.com\//i.test(body)) {
-    return '开源项目';
-  }
-
-  // Fallback for essays / articles
-  if (section === '文章' || section === '卷首语' || section === '刊首语') {
-    return '科技动态';
-  }
-
   return '其他';
 }
 
@@ -349,7 +286,7 @@ function parseIssueFile(filePath, issueNumber, readmeMeta) {
         url: externalLinks[0] || null,
         section: sec.name,
         isLeadEssay: isLead,
-        autoCategory: classifyArticle(sec.name, sec.name, secBody),
+        autoCategory: classifyArticle(sec.name, sec.name, secBody, true),
         githubRepos,
         externalLinks,
         markdown: `## ${sec.name}\n\n${secBody}`,

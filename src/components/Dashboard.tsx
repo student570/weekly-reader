@@ -25,7 +25,7 @@ interface DashboardProps {
   totalAnnotations: number;
   onSelectIssue: (issue: IssueMeta) => void;
   onContinueReading: (issueNumber: number, articleId?: string) => void;
-  onOpenSearchWithCategory: (category: 'AI' | '开源项目') => void;
+  onOpenSearchWithCategory: (category: 'AI' | '工具') => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -179,10 +179,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </button>
                 <button
                   className="pill-action-btn"
-                  onClick={() => onOpenSearchWithCategory('开源项目')}
+                  onClick={() => onOpenSearchWithCategory('工具')}
                 >
                   <Search size={13} />
-                  <span>发现开源项目</span>
+                  <span>发现工具与项目</span>
                 </button>
               </div>
             </div>
